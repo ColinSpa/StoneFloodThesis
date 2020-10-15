@@ -58,54 +58,56 @@ class Board:
         print(A)
 
     def check(self):
-        B = np.zeros(self.M*self.N)
-        for x in range(board.M):
-            for y in range(board.N):
-               B[self.M*x + y] = board.fields[(0, 0)].color == board.fields[(x, y)].color
-        return all(B)
+        A = np.zeros((self.M, self.N))
+        for x in range(self.M):
+            for y in range(self.N):
+                A[x, y] = self.fields[(x, y)].color
+        return (self.fields[(0, 0)].color * np.ones([self.M, self.N]) == A).all()
 
-    def cycle(self):
-        cycle_color = board.fields[(0,0)].color + 1  #voorkomt dat to_color == from_color
+
+class Cycle(Board):
+    def __init__(self, M, N):
+        super().__init__(M, N)
+
+    def apply_cycle(self):
+        cycle_color = self.fields[(0, 0)].color + 1
         cycle_steps = 0
-        while not board.check():
+        while not self.check():
             self.make_move(cycle_color)
             cycle_color += 1
             cycle_steps += 1
 
             if cycle_color == 5:
                 cycle_color = 0
-        board.print()
+        self.print()
         print("the number of steps taken is " + str(cycle_steps))
 
-    def random(self):
+
+class Random(Board):
+    def __init__(self, M, N):
+        super().__init__(M,N)
+
+    def apply_random(self):
         random_color = np.random.randint(5, size=1)
         random_steps = 0
 
-        while not board.check():
-            while board.fields[(0,0)].color == random_color:
-                random_color = np.random.randint(5, size=1)  #voorkomt dat to_color == from_color
+        while not self.check():
+            while self.fields[(0,0)].color == random_color:
+                random_color = np.random.randint(5, size=1)
 
             self.make_move(random_color)
             random_color = np.random.randint(5, size=1)
             random_steps += 1
 
-        board.print()
+        self.print()
         print("the number of steps taken is " + str(random_steps))
 
-""" Met de method check wordt gecheckt of alle kleuren gelijk zijn. Als dat het geval is geef de functie True als 
-output. The cycle en random methods gebruiken de check method als condition in de while not loop. """
 
-board = Board(10, 10)
+board = Cycle(7, 7)
 board.make_fields()
-board.print()
+board.apply_cycle()
 
-board.cycle()
-
-board = Board(10, 10)
+board = Random(14, 14)
 board.make_fields()
-board.print()
-
-board.random()
-
-
+board.apply_random()
 
