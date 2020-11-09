@@ -78,10 +78,10 @@ class Cycle(Board):
             cycle_color += 1
             cycle_steps += 1
 
-            if cycle_color == 5:
+            if cycle_color == self.num_colors + 1:
                 cycle_color = 0
-        self.print()
-        print("the number of steps taken is " + str(cycle_steps))
+
+        return cycle_steps
 
 
 class Random(Board):
@@ -100,8 +100,7 @@ class Random(Board):
             random_color = np.random.randint(5, size=1)
             random_steps += 1
 
-        self.print()
-        print("the number of steps taken is " + str(random_steps))
+        return random_steps
 
 
 class Greedy(Board):
@@ -109,59 +108,43 @@ class Greedy(Board):
     def __init__(self, M, N):
         super().__init__(M, N)
 
-    def field_size(self, to_color):
-        from_color = self.fields[(0, 0)].color
-        tiles_changed = 0
-        to_be_changed = set([self.fields[(0, 0)]])
-        while to_be_changed:
-            field = to_be_changed.pop()
-            to_be_changed |= set([f for f in field.neighbors if f.color == from_color])
-            field.color = to_color  # update kleur
-            tiles_changed += 1
-        return tiles_changed
-
-    '''field_size uses the same code as make_move, except that it now counts the number of tiles of the main field and
-     returns this value. In the most_tiles_added method below, field_size is used to count the tiles added to the main 
-     field when a move is made. This is done by taking the difference between the initial field and the field after the 
-     color change. Most_tiles_added returns the color which returns the most tiles. '''
-
-    def most_tiles_added(self):
-        greedy_colors = np.zeros(self.num_colors)
-        for i in range(self.num_colors):
-            test = copy.deepcopy(self)
-            from_color = test.fields[(0, 0)].color
-            if i == from_color:
-                greedy_colors[i] = 0
-            else:
-                greedy_colors[i] = abs(test.field_size(i) - test.field_size(self.num_colors + 1))
-
-        return greedy_colors.tolist().index(max(greedy_colors))
-
-    '''greedy_heur applies the greedy heuristic where the color chosen is the color which adds the most tiles in a 
-        single step. It returns the number of steps taken.'''
-
-    def greedy_heur(self):
+    def apply_greedy(self):
         greedy_steps = 0
         while not self.check():
-            greedy_col = self.most_tiles_added()
-            self.make_move(greedy_col)
+            greedy_tiles_added = np.zeros(self.num_colors)
+            for i in range(self.num_colors):
+                test = copy.deepcopy(self)  # copy the board so no changes are made to the actual board
+                from_color = test.fields[(0, 0)].color
+                if i == from_color:
+                    greedy_tiles_added[i] = 0  # choosing the same color always adds 0 tiles
+                else:
+                    to_be_changed = set([test.fields[(0, 0)]])
+                    added_tiles = set([])
+                    while to_be_changed:  # while loop that adds the neighbors of the flooded area with the to_color to the set added_tiles
+                        field = to_be_changed.pop()
+                        to_be_changed |= set([f for f in field.neighbors if f.color == from_color])
+                        added_tiles |= set([f for f in field.neighbors if f.color == i])
+                        field.color = test.num_colors + 1
+                    while added_tiles:  # while loop that counts the number of added tiles
+                        added = added_tiles.pop()
+                        added_tiles |= set([f for f in added.neighbors if f.color == i])
+                        added.color = test.num_colors + 1
+                        greedy_tiles_added[i] += 1
+
+            self.make_move(greedy_tiles_added.tolist().index(max(greedy_tiles_added)))  # make the move that adds the most tiles
             greedy_steps += 1
-
-        self.print()
-        print("the number of steps taken is " + str(greedy_steps))
+        return greedy_steps
 
 
-board = Random(7, 7)
-board.make_fields()
-board.print()
-board.apply_random()
 
-board = Cycle(7, 7)
-board.make_fields()
-board.print()
-board.apply_cycle()
+it = 100
+steps_greedy = np.zeros(it)
 
-board = Greedy(7, 7)
-board.make_fields()
-board.print()
-board.greedy_heur()
+for i in range(it):
+    board = Greedy(1, 10)
+    board.make_fields()
+
+    steps_greedy[i] = board.apply_greedy()
+
+print(np.mean(steps_greedy))
+
