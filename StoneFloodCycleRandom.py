@@ -65,6 +65,14 @@ class Board:
                 A[x, y] = self.fields[(x, y)].color
         return (self.fields[(0, 0)].color * np.ones([self.M, self.N]) == A).all()
 
+    def check_axis(self):
+        B = np.zeros(self.N + self.M - 1)
+        for y in range(self.N):
+            B[y] = self.fields[(0, y)].color
+        for x in range(self.M - 1):
+            B[self.N + x] = self.fields[(x + 1, self.N - 1)].color
+        return (self.fields[(0, 0)].color * np.ones([self.M + self.N - 1]) == B).all()
+
 
 class Cycle(Board):
     def __init__(self, M, N):
@@ -137,14 +145,45 @@ class Greedy(Board):
 
 
 
-it = 100
-steps_greedy = np.zeros(it)
+class Axis(Board):
+
+    def __init__(self, M, N):
+        super().__init__(M, N)
+
+    def next_color(self):
+
+        from_color = self.fields[(0, 0)].color
+        start = self.fields[(0, 0)]
+        x = 0
+        y = 0
+        while start.color == from_color and y < self.N - 1:
+            y += 1
+            start = self.fields[(x, y)]
+        while start.color == from_color and x < self.M - 1:
+            x += 1
+            start = self.fields[(x, y)]
+        return start.color
+
+    def apply_axis(self):
+        axis_steps = 0
+        while not self.check_axis():
+
+            self.make_move(self.next_color())
+            axis_steps += 1
+        return axis_steps
+
+
+
+
+
+
+it = 1000
+steps_axis = np.zeros(it)
 
 for i in range(it):
-    board = Greedy(1, 10)
+    board = Axis(10, 90)
     board.make_fields()
 
-    steps_greedy[i] = board.apply_greedy()
+    steps_axis[i] = board.apply_axis()
 
-print(np.mean(steps_greedy))
-
+print(np.mean(steps_axis))
